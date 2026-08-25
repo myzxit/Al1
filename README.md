@@ -63,11 +63,17 @@ GUI 없이(headless) 돌아갑니다.
 
 ```
 main.py                  진입점
+build.py                 실행 파일 빌드 스크립트
+Al1.spec                 PyInstaller 설정
+assets/                  앱 아이콘 (icon.png, icon.ico)
+tools/make_icon.py       아이콘 생성 스크립트
+.github/workflows/       Windows/macOS/Linux 자동 빌드
 app/
   config.py              앱 이름, 데이터 디렉터리 경로
   security.py            비밀번호 해싱·검증, 입력값 검사, 강도 계산
   database.py            SQLite 계정 저장소 (가입/로그인/변경/탈퇴/토큰)
   session.py             자동 로그인 토큰 파일 읽기·쓰기
+  resources.py           번들 리소스 경로 (PyInstaller 대응)
   ui/
     main_window.py       QStackedWidget 화면 전환
     login_page.py        로그인 화면
@@ -81,9 +87,31 @@ tests/                   pytest 테스트
 UI 계층은 `app/database.py`의 `AccountError`만 잡아서 그대로 화면에 띄웁니다.
 검증 규칙을 바꾸려면 `app/security.py` 한 곳만 고치면 됩니다.
 
-## 배포용 실행 파일 만들기 (선택)
+## 실행 파일(프로그램)로 만들기
+
+파이썬 설치 없이 더블클릭으로 실행되는 하나짜리 실행 파일을 만듭니다.
 
 ```bash
-pip install pyinstaller
-pyinstaller --noconfirm --windowed --name Al1 main.py
+pip install -r requirements-dev.txt
+python build.py
+```
+
+| 빌드한 OS | 결과물 |
+| --- | --- |
+| Windows | `dist\Al1.exe` |
+| macOS | `dist/Al1.app` |
+| Linux | `dist/Al1` |
+
+- 실행할 때 검은 콘솔 창이 뜨지 않습니다 (`console=False`).
+- 아이콘은 `assets/icon.ico` / `icon.png`를 씁니다. 바꾸려면 파일을 교체하거나 `python tools/make_icon.py`로 다시 생성하세요.
+- 안 쓰는 Qt 모듈(QtWebEngine, QtQuick, QtMultimedia 등)은 `Al1.spec`의 `EXCLUDES`에서 제외해 용량을 줄였습니다. 리눅스 기준 약 64 MB입니다.
+
+**PyInstaller는 크로스 컴파일을 지원하지 않습니다.** 윈도우용 `.exe`는 윈도우에서 빌드해야 합니다.
+윈도우가 없다면 GitHub Actions를 쓰세요 — 이 저장소에 `.github/workflows/build.yml`이 들어 있어서,
+브랜치에 푸시하면 Windows·macOS·Linux 세 가지를 자동으로 빌드해 Actions 아티팩트로 올려 줍니다.
+`v`로 시작하는 태그(예: `v1.0.0`)를 밀면 zip으로 묶어 릴리스에 첨부합니다.
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
 ```
